@@ -63,6 +63,10 @@ class Env:
             transport=httpx.ASGITransport(app=self.app), base_url="http://testserver"
         )
 
+    async def dispose(self) -> None:
+        if self.engine is not None:
+            await self.engine.dispose()
+
 
 async def make_env(
     *, embedding: FakeEmbeddingClient | None = None, store: FakePolicyStore | None = None,

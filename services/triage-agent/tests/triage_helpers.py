@@ -51,6 +51,11 @@ class Env:
     agent: TriageAgent
     bus: InMemoryEventBus
     sessionmaker: Any
+    engine: Any = None
+
+    async def dispose(self) -> None:
+        if self.engine is not None:
+            await self.engine.dispose()
 
 
 async def make_env(transport: httpx.MockTransport, **agent_kwargs) -> Env:
@@ -73,7 +78,7 @@ async def make_env(transport: httpx.MockTransport, **agent_kwargs) -> Env:
         db_retry_base_delay=0.0,
         **agent_kwargs,
     )
-    return Env(agent=agent, bus=bus, sessionmaker=sessionmaker)
+    return Env(agent=agent, bus=bus, sessionmaker=sessionmaker, engine=engine)
 
 
 async def seed_ticket(env: Env, *, category: str = "refund",

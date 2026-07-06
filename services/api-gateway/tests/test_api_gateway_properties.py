@@ -56,6 +56,7 @@ def test_property_1_ticket_round_trip(payload):
             assert body["customer_id"] == payload["customer_id"]
             assert body["category"] == payload["category"]
             assert body["description"] == payload["description"]
+        await env.dispose()
 
     asyncio.run(case())
 
@@ -104,6 +105,7 @@ def test_property_2_invalid_tickets_rejected(valid, choices):
             for offending in choices:
                 assert offending in named
         assert env.bus.published == []  # nothing may reach the bus
+        await env.dispose()
 
     asyncio.run(case())
 
@@ -127,6 +129,7 @@ def test_property_6_policy_round_trip(payload):
             # well-formed ISO-8601 UTC timestamp
             parsed = datetime.datetime.fromisoformat(body["ingested_at"])
             assert parsed.utcoffset() == datetime.timedelta(0)
+        await env.dispose()
 
     asyncio.run(case())
 
@@ -155,6 +158,7 @@ def test_property_7_invalid_policies_rejected(valid, choices):
         async with env.sessionmaker() as session:
             count = (await session.execute(select(func.count(PolicyDocument.policy_id)))).scalar()
         assert count == 0
+        await env.dispose()
 
     asyncio.run(case())
 
@@ -176,5 +180,6 @@ def test_property_16_embedding_failure_atomicity(payload):
         async with env.sessionmaker() as session:
             count = (await session.execute(select(func.count(PolicyDocument.policy_id)))).scalar()
         assert count == 0
+        await env.dispose()
 
     asyncio.run(case())

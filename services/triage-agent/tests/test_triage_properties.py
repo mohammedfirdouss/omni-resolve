@@ -90,5 +90,6 @@ def test_property_4_routing_by_confidence(confidence):
             assert len(escalations) == 1 and len(triaged) == 0
             assert escalations[0].payload["reason"] == "low_confidence"
             assert escalations[0].payload["confidence_score"] == effective
+        await env.dispose()
 
     asyncio.run(case())
