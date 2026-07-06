@@ -1,0 +1,13 @@
+.venv
+.git
+.kiro
+.github
+.pytest_cache
+.hypothesis
+**/__pycache__
+**/tests
+tests
+infra
+alembic
+docker-compose*.yml
+README.md
