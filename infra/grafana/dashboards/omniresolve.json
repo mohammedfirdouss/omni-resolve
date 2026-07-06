@@ -1,0 +1,114 @@
+{
+  "title": "OmniResolve Operations",
+  "uid": "omniresolve-ops",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "timezone": "utc",
+  "panels": [
+    {
+      "id": 1,
+      "title": "Ticket throughput (tickets/s)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(omni_requests_total{service=\"api-gateway\", operation=\"/tickets\", status=\"201\"}[5m]))",
+          "legendFormat": "ingested"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Resolution rate",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(omni_requests_total{service=\"execution-agent\", operation=\"execute_plan\", status=\"200\"}[5m])) / sum(rate(omni_requests_total{service=\"api-gateway\", operation=\"/tickets\", status=\"201\"}[5m]))",
+          "legendFormat": "resolved / ingested"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Escalation rate",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(omni_requests_total{service=\"escalation-agent\", operation=\"escalation_requested\", status=\"ok\"}[5m])) / sum(rate(omni_requests_total{service=\"api-gateway\", operation=\"/tickets\", status=\"201\"}[5m]))",
+          "legendFormat": "escalated / ingested"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Agent latency p95 (s)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by (service, le) (rate(omni_request_latency_seconds_bucket[5m])))",
+          "legendFormat": "{{service}}"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "LLM latency p95 by provider (s)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by (provider, le) (rate(omni_llm_latency_seconds_bucket[5m])))",
+          "legendFormat": "{{provider}}"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "DLQ depth (omni.dlq)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rabbitmq_queue_messages{queue=\"omni.dlq\"}",
+          "legendFormat": "dlq depth"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 100 }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 7,
+      "title": "Error rate by service",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (service) (rate(omni_requests_total{status=~\"5..|error\"}[5m])) / sum by (service) (rate(omni_requests_total[5m]))",
+          "legendFormat": "{{service}}"
+        }
+      ]
+    }
+  ]
+}
