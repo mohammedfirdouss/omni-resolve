@@ -45,13 +45,9 @@ def create_app(agent: ExecutionAgent | None = None) -> FastAPI:
 
     @app.get("/metrics")
     async def metrics_endpoint() -> Response:
-        # agent may be swapped in during lifespan; late import of its metrics
-        target = app.state.agent if hasattr(app.state, "agent") else agent
-        body, content_type = target.metrics.exposition()
+        body, content_type = agent.metrics.exposition()
         return Response(content=body, media_type=content_type)
 
-    if agent is not None:
-        app.state.agent = agent
     return app
 
 
