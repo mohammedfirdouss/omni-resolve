@@ -1,0 +1,19 @@
+[project]
+name = "omni-resolve"
+version = "0.1.0"
+description = "OmniResolve — autonomous Tier-1 customer support resolution platform"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["."]
+testpaths = ["services", "tests/unit"]
+addopts = "-p no:cacheprovider"
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.coverage.run]
+branch = false
+omit = ["*/tests/*", "alembic/*", ".venv/*"]
+
+[tool.coverage.report]
+show_missing = true
