@@ -41,7 +41,9 @@ services:
       - qdrantdata:/qdrant/storage
 
   api-gateway:
-    build: ./services/api-gateway
+    build:
+      context: .
+      dockerfile: services/api-gateway/Dockerfile
     environment: *common-env
     ports: ["8000:8000"]
     depends_on:
@@ -49,7 +51,9 @@ services:
       rabbitmq: { condition: service_healthy }
 
   ai-gateway:
-    build: ./services/ai-gateway
+    build:
+      context: .
+      dockerfile: services/ai-gateway/Dockerfile
     environment:
       LITELLM_MODEL: ${LITELLM_MODEL:-gpt-4o-mini}
       LITELLM_PROVIDER: ${LITELLM_PROVIDER:-openai}
@@ -59,28 +63,36 @@ services:
     ports: ["8100:8100"]
 
   triage-agent:
-    build: ./services/triage-agent
+    build:
+      context: .
+      dockerfile: services/triage-agent/Dockerfile
     environment: *common-env
     depends_on:
       postgres: { condition: service_healthy }
       rabbitmq: { condition: service_healthy }
 
   knowledge-agent:
-    build: ./services/knowledge-agent
+    build:
+      context: .
+      dockerfile: services/knowledge-agent/Dockerfile
     environment: *common-env
     depends_on:
       postgres: { condition: service_healthy }
       rabbitmq: { condition: service_healthy }
 
   execution-agent:
-    build: ./services/execution-agent
+    build:
+      context: .
+      dockerfile: services/execution-agent/Dockerfile
     environment: *common-env
     depends_on:
       postgres: { condition: service_healthy }
       rabbitmq: { condition: service_healthy }
 
   escalation-agent:
-    build: ./services/escalation-agent
+    build:
+      context: .
+      dockerfile: services/escalation-agent/Dockerfile
     environment: *common-env
     depends_on:
       postgres: { condition: service_healthy }
