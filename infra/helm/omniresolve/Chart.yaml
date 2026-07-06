@@ -1,0 +1,28 @@
+apiVersion: v2
+name: omniresolve
+description: >-
+  OmniResolve autonomous customer-support platform umbrella chart.
+  Deploys all microservices plus open-source infrastructure dependencies
+  (PostgreSQL 16, RabbitMQ 3.12, Qdrant 1.9) to any Kubernetes-conformant
+  cluster running 1.27 or later.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.27.0"
+
+dependencies:
+  - name: postgresql
+    version: 15.5.20
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled
+  - name: rabbitmq
+    version: 14.6.6
+    repository: https://charts.bitnami.com/bitnami
+    condition: rabbitmq.enabled
+  - name: qdrant
+    version: 0.9.1
+    repository: https://qdrant.github.io/qdrant-helm
+    condition: qdrant.enabled
+
+maintainers:
+  - name: omniresolve-platform

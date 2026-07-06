@@ -1,0 +1,202 @@
+# Default values for the omniresolve umbrella chart.
+# Every environment difference MUST be expressed via a values overlay file
+# (see values-dev.yaml / values-prod.yaml); templates never need editing.
+
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  # Default registry prefix for all service images. Per-service overrides
+  # are available under services.<name>.image.repository.
+  registry: ghcr.io/omniresolve/omni-resolve
+  # Default tag applied to every service unless overridden per service.
+  tag: latest
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+# Shared, non-secret configuration projected into every service via a
+# ConfigMap (envFrom). URLs default to the in-cluster dependency services;
+# override any of them here for external endpoints.
+config:
+  logLevel: INFO
+  # Leave empty to derive from the in-cluster subcharts
+  # (http://<release>-qdrant:6333 / http://<release>-ai-gateway:8100).
+  qdrantUrl: ""
+  aiGatewayUrl: ""
+  extra: {}
+
+# Shared secret configuration projected into every service via a Secret
+# (envFrom). databaseUrl / rabbitmqUrl default to the in-cluster subcharts
+# using the credentials below; set them explicitly to point at
+# self-managed (still open-source) instances outside the cluster.
+secrets:
+  # Set to false if you manage the Secret object yourself; then set
+  # existingSecret to its name.
+  create: true
+  existingSecret: ""
+  databaseUrl: ""
+  rabbitmqUrl: ""
+  openaiApiKey: ""
+  anthropicApiKey: ""
+  extra: {}
+
+# Defaults applied to every service; each entry under `services` may
+# override any of these fields.
+serviceDefaults:
+  replicaCount: 1
+  port: 8000
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  probes:
+    liveness:
+      initialDelaySeconds: 10
+      periodSeconds: 15
+      timeoutSeconds: 3
+      failureThreshold: 3
+    readiness:
+      initialDelaySeconds: 5
+      periodSeconds: 10
+      timeoutSeconds: 3
+      failureThreshold: 3
+
+services:
+  api-gateway:
+    enabled: true
+    replicaCount: 1
+    port: 8000
+    image:
+      repository: ""  # defaults to <image.registry>/api-gateway
+      tag: ""         # defaults to image.tag
+    service:
+      type: ClusterIP
+      port: 8000
+    env: []
+    resources: {}
+
+  ai-gateway:
+    enabled: true
+    replicaCount: 1
+    port: 8100
+    image:
+      repository: ""
+      tag: ""
+    service:
+      type: ClusterIP
+      port: 8100
+    env: []
+    resources: {}
+
+  triage-agent:
+    enabled: true
+    replicaCount: 1
+    port: 8000
+    image:
+      repository: ""
+      tag: ""
+    service:
+      type: ClusterIP
+      port: 8000
+    env: []
+    resources: {}
+
+  knowledge-agent:
+    enabled: true
+    replicaCount: 1
+    port: 8000
+    image:
+      repository: ""
+      tag: ""
+    service:
+      type: ClusterIP
+      port: 8000
+    env: []
+    resources: {}
+
+  execution-agent:
+    enabled: true
+    replicaCount: 1
+    port: 8000
+    image:
+      repository: ""
+      tag: ""
+    service:
+      type: ClusterIP
+      port: 8000
+    env: []
+    resources: {}
+
+  escalation-agent:
+    enabled: true
+    replicaCount: 1
+    port: 8000
+    image:
+      repository: ""
+      tag: ""
+    service:
+      type: ClusterIP
+      port: 8000
+    env: []
+    resources: {}
+
+# ---------------------------------------------------------------------------
+# Open-source infrastructure dependencies (in-cluster, no cloud-managed DBs)
+# ---------------------------------------------------------------------------
+
+postgresql:
+  enabled: true
+  image:
+    tag: "16"
+  auth:
+    username: omni
+    password: omni
+    database: omni
+  primary:
+    persistence:
+      enabled: true
+      size: 8Gi
+    resources:
+      requests:
+        cpu: 250m
+        memory: 256Mi
+      limits:
+        cpu: "1"
+        memory: 1Gi
+
+rabbitmq:
+  enabled: true
+  image:
+    tag: 3.12.14
+  auth:
+    username: omni
+    password: omni
+  persistence:
+    enabled: true
+    size: 4Gi
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+qdrant:
+  enabled: true
+  image:
+    tag: v1.9.7
+  replicaCount: 1
+  persistence:
+    size: 8Gi
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
