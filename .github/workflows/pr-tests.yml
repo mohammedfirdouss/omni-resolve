@@ -1,0 +1,105 @@
+name: PR unit tests
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.filter.outputs.changes }}
+      shared: ${{ steps.filter.outputs.shared }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          # Requirement 11.1: run tests only for services whose sources changed.
+          filters: |
+            shared:
+              - 'shared/**'
+              - 'tests/unit/**'
+              - 'pyproject.toml'
+              - 'requirements.txt'
+            api-gateway:
+              - 'services/api-gateway/**'
+            ai-gateway:
+              - 'services/ai-gateway/**'
+            triage-agent:
+              - 'services/triage-agent/**'
+            knowledge-agent:
+              - 'services/knowledge-agent/**'
+            execution-agent:
+              - 'services/execution-agent/**'
+            escalation-agent:
+              - 'services/escalation-agent/**'
+
+  shared-tests:
+    needs: changes
+    if: needs.changes.outputs.shared == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Run shared + cross-cutting tests with coverage gate
+        run: |
+          python -m pytest tests/unit -q \
+            --cov=shared --cov-report=term --cov-fail-under=80
+
+  service-tests:
+    needs: changes
+    if: needs.changes.outputs.services != '[]' && needs.changes.outputs.services != ''
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJSON(needs.changes.outputs.services) }}
+        exclude:
+          - service: shared
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Run ${{ matrix.service }} tests with 80% coverage gate
+        run: |
+          PACKAGE=$(echo "${{ matrix.service }}" | tr '-' '_')
+          python -m pytest "services/${{ matrix.service }}/tests" -q \
+            --cov="services/${{ matrix.service }}/${PACKAGE}" \
+            --cov-report=term --cov-fail-under=80
+
+  helm-lint:
+    needs: changes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - run: helm lint infra/helm/omniresolve
+
+  notify-failure:
+    needs: [shared-tests, service-tests, helm-lint]
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      # Requirement 11.6: notify the alert channel within 5 minutes of failure.
+      - name: Send failure notification
+        env:
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+        run: |
+          if [ -n "$ALERT_WEBHOOK_URL" ]; then
+            curl -sf -X POST "$ALERT_WEBHOOK_URL" \
+              -H 'content-type: application/json' \
+              -d "{\"text\":\"OmniResolve PR tests failed: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}"
+          else
+            echo "::error::PR tests failed and no ALERT_WEBHOOK_URL secret is configured"
+          fi

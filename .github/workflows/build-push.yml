@@ -1,0 +1,78 @@
+name: Build and push images
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+    # Requirement 11.2: images pushed within 15 minutes of the merge commit.
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - api-gateway
+          - ai-gateway
+          - triage-agent
+          - knowledge-agent
+          - execution-agent
+          - escalation-agent
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # tags needed for the semantic version label
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve semantic version tag
+        id: version
+        # Requirement 11.5: semantic version from the repo tag when present,
+        # otherwise a monotonically increasing build number.
+        run: |
+          if TAG=$(git describe --tags --abbrev=0 2>/dev/null); then
+            echo "semver=${TAG#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "semver=0.1.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: services/${{ matrix.service }}/Dockerfile
+          push: true
+          # Requirement 11.5: full commit SHA + semantic version / build number.
+          tags: |
+            ghcr.io/${{ github.repository }}/${{ matrix.service }}:${{ github.sha }}
+            ghcr.io/${{ github.repository }}/${{ matrix.service }}:${{ steps.version.outputs.semver }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  notify-failure:
+    needs: build-push
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      # Requirement 11.6: notify within 5 minutes of any pipeline failure.
+      - name: Send failure notification
+        env:
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+        run: |
+          if [ -n "$ALERT_WEBHOOK_URL" ]; then
+            curl -sf -X POST "$ALERT_WEBHOOK_URL" \
+              -H 'content-type: application/json' \
+              -d "{\"text\":\"OmniResolve image build failed on main: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}"
+          else
+            echo "::error::Build failed and no ALERT_WEBHOOK_URL secret is configured"
+          fi

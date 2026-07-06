@@ -1,0 +1,8 @@
+target             = "gcp"
+environment        = "prod"
+region             = "us-central1"
+gcp_project_id     = "my-omniresolve-project"
+vpc_cidr           = "10.42.0.0/16"
+kubernetes_version = "1.29"
+node_instance_type = "e2-standard-4"
+node_count         = 3
