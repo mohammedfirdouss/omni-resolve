@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import uuid
 
 import httpx
@@ -24,9 +25,26 @@ from shared.db import Base, Ticket, get_ticket_history
 from shared.event_bus import RabbitMQEventBus
 from shared.models import EventType, new_event
 
-from conftest import requires_infra
 
-pytestmark = [requires_infra, pytest.mark.integration]
+def _infra_reachable() -> bool:
+    if os.environ.get("OMNI_IT_DATABASE_URL"):
+        return True
+    try:
+        import docker
+
+        docker.from_env().ping()
+        return True
+    except Exception:
+        return False
+
+
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.skipif(
+        not _infra_reachable(),
+        reason="integration tests need a Docker daemon or an OMNI_IT_* stack",
+    ),
+]
 
 POLL_INTERVAL = 0.2
 WAIT_TIMEOUT = 30.0

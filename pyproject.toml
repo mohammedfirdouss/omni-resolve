@@ -10,6 +10,9 @@ pythonpath = ["."]
 testpaths = ["services", "tests/unit"]
 addopts = "-p no:cacheprovider"
 filterwarnings = ["ignore::DeprecationWarning"]
+markers = [
+    "integration: tests requiring real infrastructure containers (nightly, not PR gate)",
+]
 
 [tool.coverage.run]
 branch = false
