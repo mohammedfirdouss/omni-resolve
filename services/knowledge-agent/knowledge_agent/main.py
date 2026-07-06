@@ -13,7 +13,7 @@ from contextlib import asynccontextmanager
 import httpx
 from fastapi import FastAPI
 
-from shared.observability import ServiceMetrics, make_metrics_app
+from shared.observability import ServiceMetrics
 
 from knowledge_agent.agent import AGENT_NAME, KnowledgeAgent
 
@@ -60,11 +60,17 @@ def create_app(
             await bus.close()
 
     app = FastAPI(title="OmniResolve Knowledge Agent", lifespan=lifespan)
-    app.mount("/metrics", make_metrics_app(metrics))
 
     @app.get("/health")
     async def health() -> dict[str, str]:
         return {"status": "ok", "service": AGENT_NAME}
+
+    @app.get("/metrics")
+    async def metrics_endpoint():
+        from fastapi import Response
+
+        body, content_type = metrics.exposition()
+        return Response(content=body, media_type=content_type)
 
     return app
 
