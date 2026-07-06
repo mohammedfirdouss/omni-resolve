@@ -1,0 +1,32 @@
+version: "3.9"
+
+# Infrastructure-only stack for integration tests (tests/integration).
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: omni
+      POSTGRES_PASSWORD: omni
+      POSTGRES_DB: omni_test
+    ports: ["55432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U omni"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    environment:
+      RABBITMQ_DEFAULT_USER: omni
+      RABBITMQ_DEFAULT_PASS: omni
+    ports: ["55672:5672", "51567:15672"]
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  qdrant:
+    image: qdrant/qdrant:v1.9.7
+    ports: ["56333:6333"]
