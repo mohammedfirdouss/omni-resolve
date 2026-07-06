@@ -107,3 +107,20 @@ def test_main_builds_app_with_expected_routes():
 
     paths = {route.path for route in app.routes}
     assert {"/health", "/metrics"} <= paths
+
+
+async def test_main_health_and_metrics_endpoints():
+    import httpx
+
+    from triage_agent.main import app
+
+    # ASGITransport does not run lifespan, so no RabbitMQ connection is made.
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://t"
+    ) as client:
+        health = await client.get("/health")
+        assert health.status_code == 200
+        assert health.json()["service"] == "triage-agent"
+        metrics = await client.get("/metrics")
+        assert metrics.status_code == 200
+        assert b"omni_requests_total" in metrics.content
