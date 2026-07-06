@@ -1,0 +1,9 @@
+[control_plane]
+%{ if length(node_ips) > 0 ~}
+${node_ips[0]} ansible_user=${ssh_user}
+%{ endif ~}
+
+[workers]
+%{ for ip in slice(node_ips, min(1, length(node_ips)), length(node_ips)) ~}
+${ip} ansible_user=${ssh_user}
+%{ endfor ~}
