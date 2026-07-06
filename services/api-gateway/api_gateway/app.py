@@ -179,6 +179,9 @@ def create_app(
     async def health() -> dict[str, str]:
         return {"status": "ok", "service": SERVICE_NAME}
 
-    app.mount("/metrics", make_metrics_app(metrics))
+    @app.get("/metrics")
+    async def metrics_endpoint() -> Response:
+        body, content_type = metrics.exposition()
+        return Response(content=body, media_type=content_type)
 
     return app
