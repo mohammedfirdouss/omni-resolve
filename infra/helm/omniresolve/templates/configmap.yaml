@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "omniresolve.fullname" . }}-config
+  labels:
+    {{- include "omniresolve.labels" . | nindent 4 }}
+data:
+  LOG_LEVEL: {{ .Values.config.logLevel | quote }}
+  QDRANT_URL: {{ include "omniresolve.qdrantUrl" . | quote }}
+  AI_GATEWAY_URL: {{ include "omniresolve.aiGatewayUrl" . | quote }}
+  {{- range $key, $value := .Values.config.extra }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}

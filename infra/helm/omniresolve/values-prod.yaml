@@ -1,0 +1,36 @@
+# Prod overlay: pinned image tags (set per release), scaled replicas,
+# real credentials via existingSecret.
+image:
+  tag: "" # set to the release's semantic version / commit SHA
+
+secrets:
+  create: false
+  existingSecret: omniresolve-prod-env
+
+services:
+  api-gateway:
+    replicaCount: 3
+  ai-gateway:
+    replicaCount: 2
+  triage-agent:
+    replicaCount: 2
+  knowledge-agent:
+    replicaCount: 2
+  execution-agent:
+    replicaCount: 2
+  escalation-agent:
+    replicaCount: 2
+
+postgresql:
+  primary:
+    persistence:
+      size: 50Gi
+
+rabbitmq:
+  persistence:
+    size: 20Gi
+
+qdrant:
+  replicaCount: 3
+  persistence:
+    size: 50Gi

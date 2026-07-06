@@ -1,0 +1,22 @@
+{{- range $name, $rawSvc := .Values.services }}
+{{- if $rawSvc.enabled }}
+{{- $svc := include "omniresolve.serviceConfig" (dict "root" $ "svc" $rawSvc) | fromYaml }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $.Release.Name }}-{{ $name }}
+  labels:
+    {{- include "omniresolve.labels" $ | nindent 4 }}
+    app.kubernetes.io/name: {{ $name }}
+spec:
+  type: {{ dig "service" "type" "ClusterIP" $svc }}
+  ports:
+    - name: http
+      port: {{ dig "service" "port" $svc.port $svc }}
+      targetPort: http
+  selector:
+    app.kubernetes.io/name: {{ $name }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+{{- end }}
+{{- end }}
