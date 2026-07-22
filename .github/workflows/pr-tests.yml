@@ -86,8 +86,26 @@ jobs:
       - uses: azure/setup-helm@v4
       - run: helm lint infra/helm/omniresolve
 
+  integration-tests:
+    needs: changes
+    if: needs.changes.outputs.shared == 'true' || needs.changes.outputs.services != '[]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Run end-to-end integration tests against real containers (task 17.1)
+        run: |
+          python -m pytest tests/integration -q
+        # Smoke tests (task 17.2, tests/integration/test_smoke.py) self-skip here:
+        # they require OMNI_SMOKE_BASE_URL against a deployed stack and are not
+        # applicable to the PR container-based run.
+
   notify-failure:
-    needs: [shared-tests, service-tests, helm-lint]
+    needs: [shared-tests, service-tests, helm-lint, integration-tests]
     if: failure()
     runs-on: ubuntu-latest
     steps:
