@@ -1,0 +1,7 @@
+# Circuit breaker usage: bare call, outer timeout, or skip entirely
+
+`CircuitBreaker.call` is used three different ways across the agents: triage-agent and execution-agent call it bare, knowledge-agent wraps it in `asyncio.wait_for`, and escalation-agent skips it entirely in favor of a durable retry buffer. This is deliberate, not inconsistent: triage/execution's safety depends entirely on the `httpx.AsyncClient(timeout=...)` construction at their call sites already bounding every call — there is no outer `wait_for` because the client itself supplies the timeout. Knowledge-agent wraps with `wait_for` because its injected Qdrant client has no timeout of its own. Escalation-agent skips the breaker because `RabbitMQHumanQueue.enqueue` fails fast on a dead channel rather than blocking, and its capacity-bounded overflow buffer is a stronger guarantee than a breaker's open/probe cycle for a failure mode this tolerant of staleness.
+
+**Rule:** wrap `CircuitBreaker.call` in an outer `asyncio.wait_for` only when the underlying client has no timeout of its own; otherwise rely on the client's timeout. Skip the breaker entirely when failure is durably bufferable and the failure path itself never blocks.
+
+**Consequence:** any future refactor of the triage-agent or execution-agent HTTP client construction must preserve (or explicitly replace) the `timeout=` kwarg — removing it would silently reintroduce unbounded blocking with no test currently guarding against it.
